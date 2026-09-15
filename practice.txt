@@ -1,4 +1,0 @@
-practiceフォルダ・・・
-上書き
-
-VSCODEで・・・
