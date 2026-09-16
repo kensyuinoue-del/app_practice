@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
 
     // 2. メインウィンドウ（土台となるウインドウ）を作成
     QWidget window;
-    window.setWindowTitle("VS Code + Qt (Code Only)");
+    window.setWindowTitle("GUI Practice");
     window.resize(600, 400);
 
     // 3. UI部品（コンポーネント）をコード上で作成
