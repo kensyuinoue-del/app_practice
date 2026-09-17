@@ -1,4 +1,4 @@
-#include "calculator.h"
+#include "calculator_window.h"
 
 #include <QApplication>
 
@@ -7,7 +7,7 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
     // 計算機ウィンドウを作成して、サイズとタイトルを設定する。
-    Calculator calculator;
+    CalculatorWindow calculator;
     calculator.resize(300, 420);
     calculator.setWindowTitle("Calculator");
     calculator.show();

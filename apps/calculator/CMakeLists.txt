@@ -13,7 +13,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 # 3. 実行ファイルの定義
 add_executable(Calculator main.cpp)
-target_sources(Calculator PRIVATE calculator.cpp calculator_ui.cpp)
+target_sources(Calculator PRIVATE calculator.cpp calculator_ui.cpp calculator_window.cpp)
 
 # 4. Qtのライブラリをプログラムにリンク
 target_link_libraries(Calculator PRIVATE Qt6::Widgets)

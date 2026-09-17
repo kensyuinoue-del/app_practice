@@ -9,13 +9,13 @@ void CalculatorUi::setupUi(QWidget *calculator) {
     // 表示欄とボタンを4列のグリッドへ配置する。
     QGridLayout *layout = new QGridLayout(calculator);
 
+    //表示欄の定義
     display = new QLineEdit("0", calculator);
     display->setReadOnly(true);
     display->setAlignment(Qt::AlignRight);
     display->setStyleSheet("QLineEdit { font-size: 24px; }");
-    layout->addWidget(display, 0, 0, 1, 4);
+    layout->addWidget(display, 0, 0, 1, 4); //要素：ウェジット, 行, 列, 高さ, 幅
 
-    // ボタンの生成と配置はUI専用ファイルにまとめる。
     auto createButton = [calculator, layout](const QString &text, int row, int column) {
         QPushButton *button = new QPushButton(text, calculator);
         button->setMinimumHeight(50);
@@ -24,6 +24,7 @@ void CalculatorUi::setupUi(QWidget *calculator) {
         return button;
     };
 
+    //ボタンの配置行列(表示する文字, 行, 列), 上記のautoで定義
     button7 = createButton("7", 1, 0);
     button8 = createButton("8", 1, 1);
     button9 = createButton("9", 1, 2);
