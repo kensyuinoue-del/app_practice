@@ -64,6 +64,12 @@ void CalculatorLogic::clear() {
 
 // 現在の状態を、画面に表示する文字列として返す。
 QString CalculatorLogic::displayText() const {
+    // 演算子が保存されている場合は、左辺・演算子・右辺を式として表示する。
+    if (hasStoredValue_ && !pendingOperator_.isEmpty()) {
+        const QString right = currentInput_.isEmpty() ? "" : " " + currentInput_;
+        return QString::number(storedValue_) + " " + pendingOperator_ + right;
+    }
+
     // 入力中の値があれば、それを優先して表示する。
     if (!currentInput_.isEmpty()) {
         return currentInput_;
