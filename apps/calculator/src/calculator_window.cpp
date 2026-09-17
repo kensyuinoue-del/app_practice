@@ -19,6 +19,12 @@ CalculatorWindow::CalculatorWindow(QWidget *parent)
         connect(button, &QPushButton::clicked, this, &CalculatorWindow::handleDigitClicked);
     }
 
+    // 小数点、削除、括弧、符号変更のボタンを接続する。
+    connect(ui_->buttonPoint, &QPushButton::clicked, this, &CalculatorWindow::handlePointClicked);
+    connect(ui_->buttonBackSpace, &QPushButton::clicked, this, &CalculatorWindow::handleBackSpaceClicked);
+    connect(ui_->buttonParenthesis, &QPushButton::clicked, this, &CalculatorWindow::handleParenthesisClicked);
+    connect(ui_->buttonSign, &QPushButton::clicked, this, &CalculatorWindow::handleSignClicked);
+
     // 演算子ボタンを、演算子処理用の処理へ接続する。
     const QList<QPushButton *> operatorButtons = {
         ui_->buttonDivide, ui_->buttonMultiply,
@@ -48,6 +54,30 @@ void CalculatorWindow::handleDigitClicked() {
         logic_->appendDigit(button->text());
         updateDisplay();
     }
+}
+
+// 小数点を入力し、表示を更新する。
+void CalculatorWindow::handlePointClicked() {
+    logic_->appendPoint();
+    updateDisplay();
+}
+
+// 最後に入力した1文字を削除し、表示を更新する。
+void CalculatorWindow::handleBackSpaceClicked() {
+    logic_->backspace();
+    updateDisplay();
+}
+
+// 括弧を追加し、表示を更新する。
+void CalculatorWindow::handleParenthesisClicked() {
+    logic_->appendParenthesis();
+    updateDisplay();
+}
+
+// 現在入力中の数値の正負を切り替え、表示を更新する。
+void CalculatorWindow::handleSignClicked() {
+    logic_->toggleSign();
+    updateDisplay();
 }
 
 // 押された演算子を計算ロジックへ渡し、表示を更新する。

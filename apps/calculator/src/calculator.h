@@ -5,16 +5,17 @@
 class CalculatorLogic {
 public:
     void appendDigit(const QString &digit);
+    void appendPoint();
+    void backspace();
+    void toggleSign();
+    void appendParenthesis();
     void setOperator(const QString &op);
     void calculate();
     void clear();
     QString displayText() const;
 
 private:
-    double applyOperation(double left, double right, const QString &op) const;
+    bool evaluateExpression(const QString &expression, double &result) const;
 
-    QString currentInput_;
-    QString pendingOperator_;
-    double storedValue_ = 0.0;
-    bool hasStoredValue_ = false;
+    QString expression_;
 };

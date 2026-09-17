@@ -25,22 +25,26 @@ void CalculatorUi::setupUi(QWidget *calculator) {
     };
 
     //ボタンの配置行列(表示する文字, 行, 列), 上記のautoで定義
-    button7 = createButton("7", 1, 0);
-    button8 = createButton("8", 1, 1);
-    button9 = createButton("9", 1, 2);
-    buttonDivide = createButton("/", 1, 3);
-    button4 = createButton("4", 2, 0);
-    button5 = createButton("5", 2, 1);
-    button6 = createButton("6", 2, 2);
-    buttonMultiply = createButton("*", 2, 3);
-    button1 = createButton("1", 3, 0);
-    button2 = createButton("2", 3, 1);
-    button3 = createButton("3", 3, 2);
-    buttonSubtract = createButton("-", 3, 3);
-    buttonClear = createButton("C", 4, 0);
-    button0 = createButton("0", 4, 1);
-    buttonEquals = createButton("=", 4, 2);
-    buttonAdd = createButton("+", 4, 3);
+    buttonClear = createButton("AC", 1, 0);
+    buttonSign = createButton("±", 1, 1);
+    buttonParenthesis = createButton("()", 1, 2);
+    buttonMultiply = createButton("*", 1, 3);
+    button1 = createButton("1", 2, 0);
+    button2 = createButton("2", 2, 1);
+    button3 = createButton("3", 2, 2);
+    buttonDivide = createButton("/", 2, 3);
+    button4 = createButton("4", 3, 0);
+    button5 = createButton("5", 3, 1);
+    button6 = createButton("6", 3, 2);
+    buttonAdd = createButton("+", 3, 3);
+    button7 = createButton("7", 4, 0);
+    button8 = createButton("8", 4, 1);
+    button9 = createButton("9", 4, 2);
+    buttonSubtract = createButton("-", 4, 3);
+    buttonPoint = createButton(".", 5, 0);
+    button0 = createButton("0", 5, 1);
+    buttonBackSpace = createButton("←", 5, 2);
+    buttonEquals = createButton("=", 5, 3);
 }
 
 } // namespace Ui

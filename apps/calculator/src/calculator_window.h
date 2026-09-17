@@ -17,6 +17,10 @@ public:
 
 private slots:
     void handleDigitClicked();
+    void handlePointClicked();
+    void handleBackSpaceClicked();
+    void handleParenthesisClicked();
+    void handleSignClicked();
     void handleOperatorClicked();
     void handleEqualsClicked();
     void handleClearClicked();
