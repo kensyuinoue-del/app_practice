@@ -139,8 +139,9 @@ void CalculatorLogic::backspace() {
 
 void CalculatorLogic::toggleSign() {
     int start = expression_.lastIndexOf(QRegularExpression("[+*/( ]")) + 1;
-    if (start > 0 && expression_[start - 1] == '-') {
-        expression_.remove(start - 1, 1);
+    // 現在の数値の先頭がマイナスなら削除し、なければ追加する。
+    if (start < expression_.size() && expression_[start] == '-') {
+        expression_.remove(start, 1);
     } else {
         expression_.insert(start, '-');
     }
