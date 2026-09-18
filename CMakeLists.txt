@@ -7,3 +7,4 @@ set(CMAKE_AUTOMOC ON)
 
 add_subdirectory(apps/gui_practice)
 add_subdirectory(apps/calculator)
+add_subdirectory(apps/signal_analyzer)
