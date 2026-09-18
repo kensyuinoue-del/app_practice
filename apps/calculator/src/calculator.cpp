@@ -4,113 +4,113 @@
 #include <QRegularExpression>
 
 namespace {
-class ExpressionParser {
-public:
-    explicit ExpressionParser(const QString &expression) : expression_(expression) {}
+    class ExpressionParser {
+        public:
+            explicit ExpressionParser(const QString &expression) : expression_(expression) {}
 
-    bool parse(double &result) {
-        position_ = 0;
-        if (!parseExpression(result)) {
-            return false;
-        }
-        skipSpaces();
-        if (position_ != expression_.size()) {
-            return false;
-        }
-        return true;
-    }
-
-private:
-    void skipSpaces() {
-        while (position_ < expression_.size() && expression_[position_].isSpace()) {
-            ++position_;
-        }
-    }
-
-    bool parseExpression(double &result) {
-        if (!parseTerm(result)) {
-            return false;
-        }
-        while (true) {
-            skipSpaces();
-            if (position_ >= expression_.size() || (expression_[position_] != '+' && expression_[position_] != '-')) {
+            bool parse(double &result) {
+                position_ = 0;
+                if (!parseExpression(result)) {
+                    return false;
+                }
+                skipSpaces();
+                if (position_ != expression_.size()) {
+                    return false;
+                }
                 return true;
             }
-            const QChar op = expression_[position_++];
-            double right = 0.0;
-            if (!parseTerm(right)) {
-                return false;
-            }
-            result = op == '+' ? result + right : result - right;
-        }
-    }
 
-    bool parseTerm(double &result) {
-        if (!parseFactor(result)) {
-            return false;
-        }
-        while (true) {
-            skipSpaces();
-            if (position_ >= expression_.size() || (expression_[position_] != '*' && expression_[position_] != '/')) {
-                return true;
+        private:
+            void skipSpaces() {
+                while (position_ < expression_.size() && expression_[position_].isSpace()) {
+                    ++position_;
+                }
             }
-            const QChar op = expression_[position_++];
-            double right = 0.0;
-            if (!parseFactor(right)) {
-                return false;
-            }
-            if (op == '/' && qFuzzyIsNull(right)) {
-                return false;
-            }
-            result = op == '*' ? result * right : result / right;
-        }
-    }
 
-    bool parseFactor(double &result) {
-        skipSpaces();
-        if (position_ >= expression_.size()) {
-            return false;
-        }
-        if (expression_[position_] == '+') {
-            ++position_;
-            return parseFactor(result);
-        }
-        if (expression_[position_] == '-') {
-            ++position_;
-            if (!parseFactor(result)) {
-                return false;
+            bool parseExpression(double &result) {
+                if (!parseTerm(result)) {
+                    return false;
+                }
+                while (true) {
+                    skipSpaces();
+                    if (position_ >= expression_.size() || (expression_[position_] != '+' && expression_[position_] != '-')) {
+                        return true;
+                    }
+                    const QChar op = expression_[position_++];
+                    double right = 0.0;
+                    if (!parseTerm(right)) {
+                        return false;
+                    }
+                    result = op == '+' ? result + right : result - right;
+                }
             }
-            result = -result;
-            return true;
-        }
-        if (expression_[position_] == '(') {
-            ++position_;
-            if (!parseExpression(result)) {
-                return false;
-            }
-            skipSpaces();
-            if (position_ >= expression_.size() || expression_[position_] != ')') {
-                return false;
-            }
-            ++position_;
-            return true;
-        }
 
-        const int start = position_;
-        while (position_ < expression_.size() && (expression_[position_].isDigit() || expression_[position_] == '.')) {
-            ++position_;
-        }
-        if (start == position_) {
-            return false;
-        }
-        bool ok = false;
-        result = expression_.mid(start, position_ - start).toDouble(&ok);
-        return ok;
-    }
+            bool parseTerm(double &result) {
+                if (!parseFactor(result)) {
+                    return false;
+                }
+                while (true) {
+                    skipSpaces();
+                    if (position_ >= expression_.size() || (expression_[position_] != '*' && expression_[position_] != '/')) {
+                        return true;
+                    }
+                    const QChar op = expression_[position_++];
+                    double right = 0.0;
+                    if (!parseFactor(right)) {
+                        return false;
+                    }
+                    if (op == '/' && qFuzzyIsNull(right)) {
+                        return false;
+                    }
+                    result = op == '*' ? result * right : result / right;
+                }
+            }
 
-    QString expression_;
-    int position_ = 0;
-};
+            bool parseFactor(double &result) {
+                skipSpaces();
+                if (position_ >= expression_.size()) {
+                    return false;
+                }
+                if (expression_[position_] == '+') {
+                    ++position_;
+                    return parseFactor(result);
+                }
+                if (expression_[position_] == '-') {
+                    ++position_;
+                    if (!parseFactor(result)) {
+                        return false;
+                    }
+                    result = -result;
+                    return true;
+                }
+                if (expression_[position_] == '(') {
+                    ++position_;
+                    if (!parseExpression(result)) {
+                        return false;
+                    }
+                    skipSpaces();
+                    if (position_ >= expression_.size() || expression_[position_] != ')') {
+                        return false;
+                    }
+                    ++position_;
+                    return true;
+                }
+
+                const int start = position_;
+                while (position_ < expression_.size() && (expression_[position_].isDigit() || expression_[position_] == '.')) {
+                    ++position_;
+                }
+                if (start == position_) {
+                    return false;
+                }
+                bool ok = false;
+                result = expression_.mid(start, position_ - start).toDouble(&ok);
+                return ok;
+            }
+
+            QString expression_;
+            int position_ = 0;
+    };
 }
 
 void CalculatorLogic::appendDigit(const QString &digit) {

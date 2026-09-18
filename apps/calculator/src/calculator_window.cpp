@@ -3,12 +3,17 @@
 #include "calculator.h"
 #include "calculator_ui.h"
 
+// 接続処理
 CalculatorWindow::CalculatorWindow(QWidget *parent)
     : QWidget(parent), ui_(new Ui::CalculatorUi), logic_(new CalculatorLogic) {
-    // UI部品を作成する。
     ui_->setupUi(this);
+    connectDigitButtons();
+    connectOperatorButtons();
+    connectControlButtons();
+    updateDisplay();
+}
 
-    // 数字ボタンを、数字入力用の処理へ接続する。
+void CalculatorWindow::connectDigitButtons() {
     const QList<QPushButton *> digitButtons = {
         ui_->button7, ui_->button8, ui_->button9,
         ui_->button4, ui_->button5, ui_->button6,
@@ -18,14 +23,9 @@ CalculatorWindow::CalculatorWindow(QWidget *parent)
     for (QPushButton *button : digitButtons) {
         connect(button, &QPushButton::clicked, this, &CalculatorWindow::handleDigitClicked);
     }
+}
 
-    // 小数点、削除、括弧、符号変更のボタンを接続する。
-    connect(ui_->buttonPoint, &QPushButton::clicked, this, &CalculatorWindow::handlePointClicked);
-    connect(ui_->buttonBackSpace, &QPushButton::clicked, this, &CalculatorWindow::handleBackSpaceClicked);
-    connect(ui_->buttonParenthesis, &QPushButton::clicked, this, &CalculatorWindow::handleParenthesisClicked);
-    connect(ui_->buttonSign, &QPushButton::clicked, this, &CalculatorWindow::handleSignClicked);
-
-    // 演算子ボタンを、演算子処理用の処理へ接続する。
+void CalculatorWindow::connectOperatorButtons() {
     const QList<QPushButton *> operatorButtons = {
         ui_->buttonDivide, ui_->buttonMultiply,
         ui_->buttonSubtract, ui_->buttonAdd
@@ -33,21 +33,24 @@ CalculatorWindow::CalculatorWindow(QWidget *parent)
     for (QPushButton *button : operatorButtons) {
         connect(button, &QPushButton::clicked, this, &CalculatorWindow::handleOperatorClicked);
     }
-
-    // クリアボタンとイコールボタンを、それぞれの処理へ接続する。
-    connect(ui_->buttonClear, &QPushButton::clicked, this, &CalculatorWindow::handleClearClicked);
-    connect(ui_->buttonEquals, &QPushButton::clicked, this, &CalculatorWindow::handleEqualsClicked);
-
-    updateDisplay();
 }
 
-// UI部品と計算ロジック用のオブジェクトを解放する。
+void CalculatorWindow::connectControlButtons() {
+    // 処理が別のため個別に接続
+    connect(ui_->buttonClear, &QPushButton::clicked, this, &CalculatorWindow::handleClearClicked);
+    connect(ui_->buttonEquals, &QPushButton::clicked, this, &CalculatorWindow::handleEqualsClicked);
+    connect(ui_->buttonPoint, &QPushButton::clicked, this, &CalculatorWindow::handlePointClicked);
+    connect(ui_->buttonBackSpace, &QPushButton::clicked, this, &CalculatorWindow::handleBackSpaceClicked);
+    connect(ui_->buttonParenthesis, &QPushButton::clicked, this, &CalculatorWindow::handleParenthesisClicked);
+    connect(ui_->buttonSign, &QPushButton::clicked, this, &CalculatorWindow::handleSignClicked);
+}
+
 CalculatorWindow::~CalculatorWindow() {
     delete logic_;
     delete ui_;
 }
 
-// 押された数字を計算ロジックへ渡し、表示を更新する。
+// 数字を渡す
 void CalculatorWindow::handleDigitClicked() {
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button) {
@@ -56,31 +59,7 @@ void CalculatorWindow::handleDigitClicked() {
     }
 }
 
-// 小数点を入力し、表示を更新する。
-void CalculatorWindow::handlePointClicked() {
-    logic_->appendPoint();
-    updateDisplay();
-}
-
-// 最後に入力した1文字を削除し、表示を更新する。
-void CalculatorWindow::handleBackSpaceClicked() {
-    logic_->backspace();
-    updateDisplay();
-}
-
-// 括弧を追加し、表示を更新する。
-void CalculatorWindow::handleParenthesisClicked() {
-    logic_->appendParenthesis();
-    updateDisplay();
-}
-
-// 現在入力中の数値の正負を切り替え、表示を更新する。
-void CalculatorWindow::handleSignClicked() {
-    logic_->toggleSign();
-    updateDisplay();
-}
-
-// 押された演算子を計算ロジックへ渡し、表示を更新する。
+// 演算子を渡す
 void CalculatorWindow::handleOperatorClicked() {
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button) {
@@ -89,13 +68,37 @@ void CalculatorWindow::handleOperatorClicked() {
     }
 }
 
-// 計算ロジックに計算を実行させ、結果を表示する。
+// 小数点を入力
+void CalculatorWindow::handlePointClicked() {
+    logic_->appendPoint();
+    updateDisplay();
+}
+
+// 括弧を追加
+void CalculatorWindow::handleParenthesisClicked() {
+    logic_->appendParenthesis();
+    updateDisplay();
+}
+
+// 数値の正負を切り替え
+void CalculatorWindow::handleSignClicked() {
+    logic_->toggleSign();
+    updateDisplay();
+}
+
+// 計算を実行
 void CalculatorWindow::handleEqualsClicked() {
     logic_->calculate();
     updateDisplay();
 }
 
-// 計算ロジックの状態を初期化し、表示を更新する。
+// 1文字削除
+void CalculatorWindow::handleBackSpaceClicked() {
+    logic_->backspace();
+    updateDisplay();
+}
+
+// 初期化
 void CalculatorWindow::handleClearClicked() {
     logic_->clear();
     updateDisplay();
