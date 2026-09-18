@@ -5,7 +5,7 @@
 int main(int argc, char *argv[]){
     QApplication app(argc, argv);
 
-    QWidget signalAnalyzer;
+    QMainWindow signalAnalyzer;
     signalAnalyzer.setWindowTitle("SignalAnalyzer");
     signalAnalyzer.resize(800, 450);
     signalAnalyzer.show();
