@@ -8,8 +8,8 @@ int main(int argc, char *argv[]) {
 
     // 計算機ウィンドウを作成して、サイズとタイトルを設定する。
     CalculatorWindow calculator;
-    calculator.resize(300, 420);
     calculator.setWindowTitle("Calculator");
+    calculator.resize(300, 420);
     calculator.show();
 
     // ボタン操作などのイベントを待ち受ける。
