@@ -26,6 +26,10 @@ private slots:
     void handleClearClicked();
 
 private:
+    void connectDigitButtons();
+    void connectOperatorButtons();
+    void connectControlButtons();
+    void executeOperation(void (CalculatorLogic::*operation)());
     void updateDisplay();
 
     Ui::CalculatorUi *ui_;
