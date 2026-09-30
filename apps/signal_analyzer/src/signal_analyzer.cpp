@@ -8,56 +8,80 @@
 #include <array>
 #include <cmath>
 
+// グラフの領域を定義し描画するクラス
 class GraphArea : public QFrame {
 protected:
 	void paintEvent(QPaintEvent *event) override {
 		QFrame::paintEvent(event);
 
-		// アンチエイリアスを有効にして、グラフの線の描画設定をする。
-		QPainter painter(this);
-		painter.setRenderHint(QPainter::Antialiasing);
-		painter.setPen(QPen(QColor("#3478c5"), 3, Qt::SolidLine, 
-							Qt::RoundCap, Qt::RoundJoin));
-
-		// グラフの描画領域を決定する。
+		// 描画領域の取得、描画領域が空の場合は描画を行わない
 		const QRectF contents(contentsRect());
-		const QRectF area = contents.adjusted(24, 24, -24, -24);
-		if (m_plotSize.isEmpty()) {
-			if (area.width() <= 0 || area.height() <= 0) {
-				return;
-			}
-
-			// グラフの描画領域のアスペクト比を4:3に固定する。
-			constexpr qreal plotAspectRatio = 4.0 / 3.0;
-			QRectF initialPlotArea = area;
-			if (area.width() / area.height() > plotAspectRatio) {
-				const qreal plotWidth = area.height() * plotAspectRatio;
-				initialPlotArea.setLeft(area.center().x() - plotWidth / 2.0);
-				initialPlotArea.setRight(area.center().x() + plotWidth / 2.0);
-			} else {
-				const qreal plotHeight = area.width() / plotAspectRatio;
-				initialPlotArea.setTop(area.center().y() - plotHeight / 2.0);
-				initialPlotArea.setBottom(area.center().y() + plotHeight / 2.0);
-			}
-			m_plotSize = initialPlotArea.size();
+		if (contents.width() <= 0 || contents.height() <= 0) {
+			return;
 		}
 
-		// グラフの描画領域を決定し、描画領域をクリップする。
+		// グラフエリアの設定
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing);
+		if (m_plotSize.isEmpty()) {
+			m_plotSize = contents.size();
+		}
 		QRectF plotArea(QPointF(0, 0), m_plotSize);
 		plotArea.moveCenter(contents.center());
 		painter.setClipRect(contents);
 
-		// グラフの描画
-		const qreal top = plotArea.top() + plotArea.height() * 0.15;
-		const qreal bottom = plotArea.bottom() - plotArea.height() * 0.15;
-		const qreal radius = qMin(plotArea.width() / 2.0, bottom - top);
-		constexpr int pointCount = 65;
+		// 描画領域の座標を取得
+		const qreal top = plotArea.top();
+		const qreal bottom = plotArea.bottom();
+		const qreal centerY = plotArea.center().y();
+		const qreal centerX = plotArea.center().x();
+
+		// グリッドの設定
+		constexpr int verticalDivisions = 10;
+		constexpr int horizontalDivisions = 8;
+		const qreal gridSpacingX = m_plotSize.width() / verticalDivisions;
+		const qreal gridSpacingY = m_plotSize.height() / horizontalDivisions;
+		const qreal firstVertical = centerX - gridSpacingX * std::ceil(
+			(centerX - contents.left()) / gridSpacingX);
+		const qreal firstHorizontal = centerY - gridSpacingY * std::ceil(
+			(centerY - contents.top()) / gridSpacingY);
+
+		// グリッドの描画
+		painter.setPen(QPen(QColor("#c6cbd1"), 1, Qt::DashLine));
+		for (qreal x = firstVertical; x <= contents.right(); x += gridSpacingX) {
+			painter.drawLine(QPointF(x, contents.top()), QPointF(x, contents.bottom()));
+		}
+		for (qreal y = firstHorizontal; y <= contents.bottom(); y += gridSpacingY) {
+			painter.drawLine(QPointF(contents.left(), y), QPointF(contents.right(), y));
+		}
+
+		// 軸の描画設定
+		const QPen axisPen(QColor("#737b84"), 1.5);
+		const QPen axisLabelPen(QColor("#555d66"));
+
+		// 軸の描画
+		painter.setPen(axisPen);
+		painter.drawLine(QPointF(contents.left(), centerY), QPointF(contents.right(), centerY));
+		painter.drawLine(QPointF(centerX, contents.top()), QPointF(centerX, contents.bottom()));
+		painter.setPen(axisLabelPen);
+		painter.drawText(QRectF(contents.right() - 48, contents.bottom() - 24, 48, 20),
+						Qt::AlignRight, "時間");
+		painter.drawText(QRectF(contents.left() + 6, contents.top() + 4, 36, 20),
+						Qt::AlignLeft, "電圧");
+
+		// 波形の描画設定
+		painter.setPen(QPen(QColor("#3478c5"), 3, Qt::SolidLine,
+							Qt::RoundCap, Qt::RoundJoin));
+
+		// 波形の描画
+		const qreal amplitude = (bottom - top) / 2.0;
+		constexpr int pointCount = 129;
 		std::array<QPointF, pointCount> points;
 		for (int index = 0; index < pointCount; ++index) {
 			const qreal t = static_cast<qreal>(index) / (pointCount - 1);
 			const qreal x = plotArea.left() + t * plotArea.width();
-			const qreal normalizedX = 2.0 * t - 1.0;
-			const qreal y = top + radius * std::sqrt(1.0 - normalizedX * normalizedX);
+			const qreal phase = 2.0 * M_PI * 2.0 * t;
+			const qreal y = centerY - amplitude * std::sin(phase);
 			points[index] = QPointF(x, y);
 		}
 		painter.drawPolyline(points.data(), static_cast<int>(points.size()));
