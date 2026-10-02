@@ -12,7 +12,12 @@ set(CMAKE_AUTOMOC ON)
 find_package(Qt6 REQUIRED COMPONENTS Widgets Multimedia)
 
 # 3. 実行ファイルの定義
-add_executable(Wave_Generator main.cpp)
+option(WAVE_GENERATOR_GUI_SUBSYSTEM "Build without a console window on Windows" OFF)
+if(WIN32 AND WAVE_GENERATOR_GUI_SUBSYSTEM)
+	add_executable(Wave_Generator WIN32 main.cpp)
+else()
+	add_executable(Wave_Generator main.cpp)
+endif()
 target_sources(Wave_Generator PRIVATE
 	src/wave_generator.cpp
 	src/audio_preview_player.cpp
