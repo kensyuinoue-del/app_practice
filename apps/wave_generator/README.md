@@ -51,3 +51,5 @@ cmake --build build --target Wave_Generator
 ```
 
 ビルド後の実行ファイルは`build/apps/wave_generator/Wave_Generator.exe`です。
+
+Windowsでコンソールウィンドウを表示しない実行ファイルを作る場合は、Qtに対応するコンパイラーを使い、構成時に`-DWAVE_GENERATOR_GUI_SUBSYSTEM=ON`を指定してください。Qtとは異なるMinGWコンパイラーを使うと、GUI実行形式のリンクに失敗する場合があります。
