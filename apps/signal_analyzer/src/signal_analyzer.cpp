@@ -1,117 +1,249 @@
 #include "signal_analyzer.h"
 
+#include <QDoubleSpinBox>
 #include <QFrame>
-#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QPainter>
+#include <QPainterPath>
+#include <QSpinBox>
+#include <QVBoxLayout>
 #include <QWidget>
 
-#include <array>
+#include <algorithm>
 #include <cmath>
 
-// グラフの領域を定義し描画するクラス
 class GraphArea : public QFrame {
+public:
+    // グラフの軸設定を更新する。
+    void setAxisSettings(int microseconds, double amplitudeRange) {
+        m_xIntervalMicroseconds = microseconds;
+        m_yRange = amplitudeRange;
+        update();
+    }
+
+    // サンプルレートを設定する。
+    void setSampleRate(int sampleRateHz) {
+        m_sampleRateHz = sampleRateHz;
+        update();
+    }
+
+    // サンプルデータを設定する。
+    void setSamples(const QVector<double> &samples) {
+        m_samples = samples;
+        update();
+    }
+
 protected:
-	void paintEvent(QPaintEvent *event) override {
-		QFrame::paintEvent(event);
+    // グラフ表示領域に描画する。
+    void paintEvent(QPaintEvent *event) override {
+        QFrame::paintEvent(event);
 
-		// 描画領域の取得、描画領域が空の場合は描画を行わない
-		const QRectF contents(contentsRect());
-		if (contents.width() <= 0 || contents.height() <= 0) {
-			return;
-		}
+        // 描画領域のサイズを取得、描画領域が有効でない場合は描画をスキップ
+        const QRectF contents(contentsRect());
+        if (contents.width() <= 0 || contents.height() <= 0) {
+            return;
+        }
 
-		// グラフエリアの設定
-		QPainter painter(this);
-		painter.setRenderHint(QPainter::Antialiasing);
-		if (m_plotSize.isEmpty()) {
-			m_plotSize = contents.size();
-		}
-		QRectF plotArea(QPointF(0, 0), m_plotSize);
-		plotArea.moveCenter(contents.center());
-		painter.setClipRect(contents);
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);  // アンチエイリアスを有効にする
+        painter.setClipRect(contents);  // 描画領域をクリップ
 
-		// 描画領域の座標を取得
-		const qreal top = plotArea.top();
-		const qreal bottom = plotArea.bottom();
-		const qreal centerY = plotArea.center().y();
-		const qreal centerX = plotArea.center().x();
+        // 描画領域のサイズを取得、描画領域が有効でない場合は描画をスキップ
+        const QRectF plotArea(contents);
+        if (plotArea.width() <= 0 || plotArea.height() <= 0) {
+            return;
+        }
 
-		// グリッドの設定
-		constexpr int verticalDivisions = 10;
-		constexpr int horizontalDivisions = 8;
-		const qreal gridSpacingX = m_plotSize.width() / verticalDivisions;
-		const qreal gridSpacingY = m_plotSize.height() / horizontalDivisions;
-		const qreal firstVertical = centerX - gridSpacingX * std::ceil(
-			(centerX - contents.left()) / gridSpacingX);
-		const qreal firstHorizontal = centerY - gridSpacingY * std::ceil(
-			(centerY - contents.top()) / gridSpacingY);
+        painter.setBrush(QBrush(QColor("#ffffff")));
+        painter.setPen(Qt::NoPen);
+        painter.drawRect(plotArea);
 
-		// グリッドの描画
-		painter.setPen(QPen(QColor("#c6cbd1"), 1, Qt::DashLine));
-		for (qreal x = firstVertical; x <= contents.right(); x += gridSpacingX) {
-			painter.drawLine(QPointF(x, contents.top()), QPointF(x, contents.bottom()));
-		}
-		for (qreal y = firstHorizontal; y <= contents.bottom(); y += gridSpacingY) {
-			painter.drawLine(QPointF(contents.left(), y), QPointF(contents.right(), y));
-		}
+        // サンプルデータが空の場合は描画をスキップ
+        if (m_samples.isEmpty()) {
+            return;
+        }
 
-		// 軸の描画設定
-		const QPen axisPen(QColor("#737b84"), 1.5);
-		const QPen axisLabelPen(QColor("#555d66"));
+        // 表示範囲と目盛り間隔を取得する。
+        const double samplePeriodMicroseconds = getSamplePeriodMicroseconds();
+        const double maxX = getMaxX(samplePeriodMicroseconds);
+        const double minY = -m_yRange;
+        const double maxY = m_yRange;
+        const double visibleXInterval = getVisibleXInterval(plotArea, maxX);
+        const double visibleYInterval = getVisibleYInterval(plotArea, minY, maxY);
+        const QPen gridPen(QColor("#d0d6dc"), 1, Qt::DashLine);
 
-		// 軸の描画
-		painter.setPen(axisPen);
-		painter.drawLine(QPointF(contents.left(), centerY), QPointF(contents.right(), centerY));
-		painter.drawLine(QPointF(centerX, contents.top()), QPointF(centerX, contents.bottom()));
-		painter.setPen(axisLabelPen);
-		painter.drawText(QRectF(contents.right() - 48, contents.bottom() - 24, 48, 20),
-						Qt::AlignRight, "時間");
-		painter.drawText(QRectF(contents.left() + 6, contents.top() + 4, 36, 20),
-						Qt::AlignLeft, "電圧");
-
-		// 波形の描画設定
-		painter.setPen(QPen(QColor("#3478c5"), 3, Qt::SolidLine,
-							Qt::RoundCap, Qt::RoundJoin));
-
-		// 波形の描画
-		const qreal amplitude = (bottom - top) / 2.0;
-		constexpr int pointCount = 129;
-		std::array<QPointF, pointCount> points;
-		for (int index = 0; index < pointCount; ++index) {
-			const qreal t = static_cast<qreal>(index) / (pointCount - 1);
-			const qreal x = plotArea.left() + t * plotArea.width();
-			const qreal phase = 2.0 * M_PI * 2.0 * t;
-			const qreal y = centerY - amplitude * std::sin(phase);
-			points[index] = QPointF(x, y);
-		}
-		painter.drawPolyline(points.data(), static_cast<int>(points.size()));
-	}
+        // 各パーツの描画を順番に行う。
+        painter.setFont(QFont(QStringLiteral("Sans Serif"), 8));
+        drawXGrid(painter, plotArea, maxX, visibleXInterval, gridPen);
+        drawYGrid(painter, plotArea, minY, maxY, visibleYInterval, gridPen);
+        drawAxes(painter, plotArea);
+        drawSamples(painter, plotArea, samplePeriodMicroseconds, maxX, minY, maxY);
+    }
 
 private:
-	QSizeF m_plotSize;
+    // サンプルレートからサンプル間隔（マイクロ秒）を取得する。
+    double getSamplePeriodMicroseconds() const {
+        return 1000000.0 / m_sampleRateHz;
+    }
+
+    // サンプルデータに合わせたX軸の最大値を取得する。
+    double getMaxX(double samplePeriodMicroseconds) const {
+        const double lastSampleTimeMicroseconds =
+            static_cast<double>(m_samples.size() - 1) * samplePeriodMicroseconds;
+        return std::max(
+            static_cast<double>(m_xIntervalMicroseconds),
+            std::ceil(lastSampleTimeMicroseconds / m_xIntervalMicroseconds) * m_xIntervalMicroseconds
+        );
+    }
+
+    // 画面幅に収まる、読みやすいX軸目盛り間隔を取得する。
+    double getVisibleXInterval(const QRectF &plotArea, double maxX) const {
+        const double maxVisibleXTicks = std::max(1.0, std::floor(plotArea.width() / 80.0));
+        return std::max(
+            static_cast<double>(m_xIntervalMicroseconds),
+            std::ceil(maxX / (maxVisibleXTicks * m_xIntervalMicroseconds)) * m_xIntervalMicroseconds
+        );
+    }
+
+    // 画面高さに収まりやすい、読みやすいY軸目盛り間隔を取得する。
+    double getVisibleYInterval(
+        const QRectF &plotArea, double minY, double maxY) const {
+        const double maxVisibleYTicks = std::max(1.0, std::floor(plotArea.height() / 28.0));
+        const double rawYInterval = (maxY - minY) / maxVisibleYTicks;
+        const double intervalMagnitude = std::pow(10.0, std::floor(std::log10(rawYInterval)));
+        const double normalizedInterval = rawYInterval / intervalMagnitude;
+        const double niceInterval = normalizedInterval <= 1.0 ? 1.0
+            : normalizedInterval <= 2.0 ? 2.0
+            : normalizedInterval <= 5.0 ? 5.0 : 10.0;
+        return niceInterval * intervalMagnitude;
+    }
+
+    // X軸の目盛り位置に垂直なグリッド線を描画する。
+    void drawXGrid(
+        QPainter &painter, const QRectF &plotArea, double maxX,
+        double visibleXInterval, const QPen &gridPen) const {
+        painter.setPen(gridPen);
+        for (double timeMicroseconds = 0.0;
+             timeMicroseconds <= maxX + (visibleXInterval * 1e-9);
+             timeMicroseconds += visibleXInterval) {
+            const qreal x = plotArea.left() + (timeMicroseconds / maxX) * plotArea.width();
+            painter.drawLine(QPointF(x, plotArea.top()), QPointF(x, plotArea.bottom()));
+        }
+    }
+
+    // Y軸の目盛り位置に水平なグリッド線を描画する。
+    void drawYGrid(
+        QPainter &painter, const QRectF &plotArea, double minY, double maxY,
+        double visibleYInterval, const QPen &gridPen) const {
+        const double firstYTick = std::ceil(minY / visibleYInterval);
+        const double lastYTick = std::floor(maxY / visibleYInterval);
+        painter.setPen(gridPen);
+        for (double tick = firstYTick; tick <= lastYTick; ++tick) {
+            const double amplitude = tick * visibleYInterval;
+            const qreal y = plotArea.bottom() - ((amplitude - minY) / (maxY - minY)) * plotArea.height();
+            painter.drawLine(QPointF(plotArea.left(), y), QPointF(plotArea.right(), y));
+        }
+    }
+
+    // X軸とY軸を描画する。
+    void drawAxes(QPainter &painter, const QRectF &plotArea) const {
+        const QPen axisPen(QColor("#4d5560"), 1.5);
+        painter.setPen(axisPen);
+        painter.drawLine(QPointF(plotArea.left(), plotArea.center().y()),
+                         QPointF(plotArea.right(), plotArea.center().y())
+        );
+        painter.drawLine(QPointF(plotArea.left(), plotArea.top()),
+                         QPointF(plotArea.left(), plotArea.bottom())
+        );
+    }
+
+    // サンプルデータを座標に変換し、折れ線として描画する。
+    void drawSamples(
+        QPainter &painter, const QRectF &plotArea, double samplePeriodMicroseconds,
+        double maxX, double minY, double maxY) const {
+        QPainterPath path;
+        for (int index = 0; index < m_samples.size(); ++index) {
+            const double sampleTimeMicroseconds = index * samplePeriodMicroseconds;
+            const double normalizedX = sampleTimeMicroseconds / maxX;
+            const double normalizedY = (m_samples[index] - minY) / (maxY - minY);
+            const qreal x = plotArea.left() + normalizedX * plotArea.width();
+            const qreal y = plotArea.bottom() - normalizedY * plotArea.height();
+            const QPointF point(x, y);
+            if (index == 0) {
+                path.moveTo(point);
+            } else {
+                path.lineTo(point);
+            }
+        }
+
+        // サンプルデータの線を描画
+        painter.setPen(QPen(QColor("#3478c5"), 2, Qt::SolidLine,
+                            Qt::RoundCap, Qt::RoundJoin));
+        painter.drawPath(path);
+    }
+
+    // 設定値を描画処理から分離して保持する。
+    QVector<double> m_samples;
+    int m_sampleRateHz = 0;
+    int m_xIntervalMicroseconds = 1;
+    double m_yRange = 1.0;
 };
 
 SignalAnalyzer::SignalAnalyzer(QWidget *parent)
-	: QMainWindow(parent) {
+    : QMainWindow(parent) {
+    QWidget *centralWidget = new QWidget(this);
+    auto *rootLayout = new QHBoxLayout(centralWidget);
+    const int margin = 8;
+    const int widgetSpacing = 8;
+    rootLayout->setContentsMargins(margin, margin, margin, margin); // ウィンドウの端からの余白をmargin分のピクセルに設定
+    rootLayout->setSpacing(widgetSpacing);  // ウィジェット間のスペースをwidgetSpacing分のピクセルに設定
 
-	// ウィンドウの中央に、子ウィジェットを配置するための領域を作る。
-	QWidget *centralWidget = new QWidget(this);
-	QGridLayout *layout = new QGridLayout(centralWidget);
+    // コントロールパネルのレイアウトを作成
+    auto *controlsLayout = new QVBoxLayout;
+    
+    auto *xIntervalLabel = new QLabel(QStringLiteral("X軸目盛り間隔（μs）:"), centralWidget);
+    xIntervalLabel->setWordWrap(true);
+    auto *xIntervalInput = new QSpinBox(centralWidget);
+    xIntervalInput->setRange(1, 1000000000);
+    xIntervalInput->setValue(1);
+    controlsLayout->addWidget(xIntervalLabel);
+    controlsLayout->addWidget(xIntervalInput);
 
-	const double Stretch = 7.5;	// ウェジットの比率
+    auto *yRangeLabel = new QLabel(QStringLiteral("Y軸表示範囲（±サンプル値）:"), centralWidget);
+    yRangeLabel->setWordWrap(true);
+    auto *yRangeInput = new QDoubleSpinBox(centralWidget);
+    yRangeInput->setDecimals(8);
+    yRangeInput->setRange(0.001, 1000000000000.0);
+    yRangeInput->setSingleStep(0.1);
+    yRangeInput->setValue(1.0);
+    controlsLayout->addWidget(yRangeLabel);
+    controlsLayout->addWidget(yRangeInput);
 
-	layout->setRowStretch(0, Stretch);	// ウェジットの高さ比率
-	layout->setColumnStretch(0, Stretch);	// ウェジットの幅比率
-	layout->setRowStretch(1, 10-Stretch);	// 余白の高さ比率(ウェジットの高さ比率に合わせ一意に決定)
-	layout->setColumnStretch(1, 10-Stretch);	// 余白の幅比率(ウェジットの幅比率に合わせ一意に決定)
+    controlsLayout->addStretch();
 
-	// グラフを描画する領域として、背景と枠線を持つフレームを作る。
-	QFrame *graphArea = new GraphArea;
-	graphArea->setStyleSheet(
-		"QFrame { background-color: #f0efef; border: 2px solid #888181; }"
-	);
+    // グラフ表示領域を作成
+    auto *graphArea = new GraphArea;
+    graphArea->setStyleSheet(
+        "QFrame { background-color: #ffffff; border: 2px solid #888181; }"
+    );
+    const int minHeight = 320;
+    graphArea->setMinimumHeight(minHeight);
+    rootLayout->addWidget(graphArea, 1);
 
-	// グラフ領域を左上のセルに配置し、中央ウィジェットをメインウィンドウに設定する。
-	layout->addWidget(graphArea, 0, 0);
-	setCentralWidget(centralWidget);
+    // コントロールパネルを作成
+    auto *controlsPanel = new QWidget(centralWidget);
+    controlsPanel->setLayout(controlsLayout);
+    controlsPanel->setMinimumWidth(190);
+    rootLayout->addWidget(controlsPanel);
+
+    // グラフの軸設定を更新するラムダ関数を定義
+    const auto updateAxisSettings = [graphArea, xIntervalInput, yRangeInput]() {
+        graphArea->setAxisSettings(xIntervalInput->value(), yRangeInput->value());
+    };
+    QObject::connect(xIntervalInput, &QSpinBox::valueChanged, graphArea,
+                     [updateAxisSettings](int) { updateAxisSettings(); });
+    QObject::connect(yRangeInput, &QDoubleSpinBox::valueChanged, graphArea,
+                     [updateAxisSettings](double) { updateAxisSettings(); });
+    setCentralWidget(centralWidget);
 }
