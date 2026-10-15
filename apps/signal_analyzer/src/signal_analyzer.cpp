@@ -1,17 +1,24 @@
 #include "signal_analyzer.h"
+#include "wav_file_reader.h"
 
 #include <QDoubleSpinBox>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPushButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QMessageBox>
+#include <QComboBox>
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 class GraphArea : public QFrame {
 public:
@@ -201,6 +208,18 @@ SignalAnalyzer::SignalAnalyzer(QWidget *parent)
 
     // コントロールパネルのレイアウトを作成
     auto *controlsLayout = new QVBoxLayout;
+
+    auto *openWavButton = new QPushButton(QStringLiteral("WAVを開く"), centralWidget);
+    auto *fileInfoLabel = new QLabel(QStringLiteral("ファイル未読み込み"), centralWidget);
+    fileInfoLabel->setWordWrap(true);
+    auto *channelLabel = new QLabel(QStringLiteral("表示チャンネル:"), centralWidget);
+    auto *channelInput = new QComboBox(centralWidget);
+    channelLabel->hide();
+    channelInput->hide();
+    controlsLayout->addWidget(openWavButton);
+    controlsLayout->addWidget(fileInfoLabel);
+    controlsLayout->addWidget(channelLabel);
+    controlsLayout->addWidget(channelInput);
     
     auto *xIntervalLabel = new QLabel(QStringLiteral("X軸目盛り間隔（μs）:"), centralWidget);
     xIntervalLabel->setWordWrap(true);
@@ -242,8 +261,55 @@ SignalAnalyzer::SignalAnalyzer(QWidget *parent)
         graphArea->setAxisSettings(xIntervalInput->value(), yRangeInput->value());
     };
     QObject::connect(xIntervalInput, &QSpinBox::valueChanged, graphArea,
-                     [updateAxisSettings](int) { updateAxisSettings(); });
+                     [updateAxisSettings](int) { updateAxisSettings(); }
+    );
     QObject::connect(yRangeInput, &QDoubleSpinBox::valueChanged, graphArea,
-                     [updateAxisSettings](double) { updateAxisSettings(); });
+                     [updateAxisSettings](double) { updateAxisSettings(); }
+    );
+    
+    // WAVファイルを読み込むボタンがクリックされたときの処理を定義
+    const auto loadedChannels = std::make_shared<QVector<QVector<double>>>();
+    QObject::connect(channelInput, qOverload<int>(&QComboBox::currentIndexChanged),
+                     graphArea, [graphArea, channelInput, loadedChannels](int index) {
+        if (index >= 0 && index < loadedChannels->size()) {
+            graphArea->setSamples((*loadedChannels)[index]);
+        }
+    });
+    QObject::connect(openWavButton, &QPushButton::clicked, this,
+                     [this, graphArea, fileInfoLabel, channelLabel, channelInput, loadedChannels]() {
+        const QString filePath = QFileDialog::getOpenFileName(
+            this, QStringLiteral("WAVファイルを開く"), QString(),
+            QStringLiteral("WAVファイル (*.wav *.wave);;すべてのファイル (*)"));
+        if (filePath.isEmpty()) {
+            return;
+        }
+
+        WavFileData wavData;
+        QString errorMessage;
+        if (!readWavFile(filePath, &wavData, &errorMessage)) {
+            QMessageBox::critical(this, QStringLiteral("読み込みエラー"), errorMessage);
+            return;
+        }
+
+        // WAVファイルの情報を表示し、チャンネル選択コンボボックスを更新する
+        channelInput->clear();
+        *loadedChannels = wavData.channels;
+        for (int channel = 0; channel < wavData.channels.size(); ++channel) {
+            channelInput->addItem(QStringLiteral("チャンネル %1").arg(channel + 1), channel);
+        }
+        const bool hasMultipleChannels = wavData.channels.size() > 1;
+        channelLabel->setVisible(hasMultipleChannels);
+        channelInput->setVisible(hasMultipleChannels);
+        graphArea->setSampleRate(wavData.sampleRateHz);
+        graphArea->setSamples(wavData.channels.first());
+        fileInfoLabel->setText(
+            QStringLiteral("%1\n%2 Hz / %3 ch / %4-bit %5 / %6 samples")
+                .arg(QFileInfo(filePath).fileName())
+                .arg(wavData.sampleRateHz)
+                .arg(wavData.channelCount)
+                .arg(wavData.bitsPerSample)
+                .arg(wavData.encoding)
+                .arg(wavData.channels.first().size()));
+    });
     setCentralWidget(centralWidget);
 }

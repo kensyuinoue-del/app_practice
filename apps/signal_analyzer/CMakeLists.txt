@@ -15,6 +15,8 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 add_executable(Signal_Analyzer main.cpp)
 target_sources(Signal_Analyzer PRIVATE
 	src/signal_analyzer.cpp
+	src/wav_file_reader.cpp
+	src/wav_file_reader.h
 )
 target_include_directories(Signal_Analyzer PRIVATE src)
 
