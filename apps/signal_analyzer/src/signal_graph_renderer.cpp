@@ -1,6 +1,5 @@
 #include "signal_graph_renderer.h"
 
-#include <QFrame>
 #include <QPainter>
 #include <QPainterPath>
 
@@ -12,9 +11,8 @@ void SignalGraphRenderer::invalidateEnvelope() {
     m_envelopeSampleCount = 0;
 }
 
-void SignalGraphRenderer::draw(QPainter &painter, const QRectF &plotArea,
-    const std::shared_ptr<const QVector<double>> &samples,
-    int sampleRateHz, int xIntervalMicroseconds, double yInterval) {
+void SignalGraphRenderer::drawBackgroundAndAxes(QPainter &painter, const QRectF &plotArea,
+    int xIntervalMicroseconds, double yInterval) const {
     if (plotArea.width() <= 0 || plotArea.height() <= 0) {
         return;
     }
@@ -37,18 +35,29 @@ void SignalGraphRenderer::draw(QPainter &painter, const QRectF &plotArea,
     drawXGrid(painter, plotArea, maxX, visibleXInterval, gridPen);
     drawYGrid(painter, plotArea, minY, maxY, visibleYInterval, gridPen);
     drawAxes(painter, plotArea);
+}
 
+void SignalGraphRenderer::drawWaveform(QPainter &painter, const QRectF &plotArea,
+    const std::shared_ptr<const QVector<double>> &samples,
+    int sampleRateHz, int xIntervalMicroseconds, double yInterval) {
+    if (plotArea.width() <= 0 || plotArea.height() <= 0) {
+        return;
+    }
     if (!samples || samples->isEmpty() || sampleRateHz <= 0) {
         return;
     }
 
+    const double maxX = xIntervalMicroseconds * visibleXTickCount;
+    const double yRange = yInterval * visibleYHalfTickCount;
+    const double minY = -yRange;
+    const double maxY = yRange;
     const double samplePeriodMicroseconds = 1000000.0 / sampleRateHz;
     const double visibleSampleCountValue = std::floor(maxX / samplePeriodMicroseconds) + 1.0;
     const int visibleSampleCount = static_cast<int>(std::min(
         static_cast<double>(samples->size()), visibleSampleCountValue)
     );
     updateEnvelope(std::max(1, qRound(plotArea.width())), visibleSampleCount, *samples);
-    drawSamples(painter, plotArea, samplePeriodMicroseconds, maxX, minY, maxY, *samples);
+    drawWaveformPath(painter, plotArea, samplePeriodMicroseconds, maxX, minY, maxY, *samples);
 }
 
 void SignalGraphRenderer::drawXGrid(QPainter &painter, const QRectF &plotArea, double maxX,
@@ -109,7 +118,7 @@ void SignalGraphRenderer::updateEnvelope(int width, int visibleSampleCount,
     }
 }
 
-void SignalGraphRenderer::drawSamples(QPainter &painter, const QRectF &plotArea,
+void SignalGraphRenderer::drawWaveformPath(QPainter &painter, const QRectF &plotArea,
     double samplePeriodMicroseconds, double maxX, double minY, double maxY,
     const QVector<double> &samples) const {
     QPainterPath path;
@@ -138,6 +147,7 @@ void SignalGraphRenderer::drawSamples(QPainter &painter, const QRectF &plotArea,
         }
     }
 
+    painter.setBrush(Qt::NoBrush);
     painter.setPen(QPen(QColor("#3478c5"), 2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter.drawPath(path);
 }

@@ -28,6 +28,9 @@ void SignalGraphWidget::paintEvent(QPaintEvent *event) {
     QFrame::paintEvent(event);
 
     QPainter painter(this);
-    m_renderer.draw(painter, contentsRect(), m_samples, m_sampleRateHz,
+    const QRectF plotArea(contentsRect());
+    m_renderer.drawBackgroundAndAxes(painter, plotArea,
+        m_xIntervalMicroseconds, m_yInterval);
+    m_renderer.drawWaveform(painter, plotArea, m_samples, m_sampleRateHz,
         m_xIntervalMicroseconds, m_yInterval);
 }

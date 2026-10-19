@@ -53,8 +53,8 @@ SignalAnalyzer::SignalAnalyzer(QWidget *parent)
     yIntervalLabel->setWordWrap(true);
     auto *yIntervalInput = new QDoubleSpinBox(centralWidget);
     yIntervalInput->setDecimals(3);
-    yIntervalInput->setRange(0.01, 1.0);
-    yIntervalInput->setSingleStep(0.01);
+    yIntervalInput->setRange(0.001, 1.0);
+    yIntervalInput->setSingleStep(0.001);
     yIntervalInput->setValue(0.1);
     controlsLayout->addWidget(yIntervalLabel);
     controlsLayout->addWidget(yIntervalInput);
