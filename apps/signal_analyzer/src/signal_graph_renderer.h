@@ -10,7 +10,9 @@ class QRectF;
 
 class SignalGraphRenderer {
 public:
-    void draw(QPainter &painter, const QRectF &plotArea,
+    void drawBackgroundAndAxes(QPainter &painter, const QRectF &plotArea,
+        int xIntervalMicroseconds, double yInterval) const;
+    void drawWaveform(QPainter &painter, const QRectF &plotArea,
         const std::shared_ptr<const QVector<double>> &samples,
         int sampleRateHz, int xIntervalMicroseconds, double yInterval);
     void invalidateEnvelope();
@@ -30,7 +32,7 @@ private:
         double visibleYInterval, const QPen &gridPen) const;
     void drawAxes(QPainter &painter, const QRectF &plotArea) const;
     void updateEnvelope(int width, int visibleSampleCount, const QVector<double> &samples);
-    void drawSamples(QPainter &painter, const QRectF &plotArea,
+    void drawWaveformPath(QPainter &painter, const QRectF &plotArea,
         double samplePeriodMicroseconds, double maxX, double minY, double maxY,
         const QVector<double> &samples) const;
 
